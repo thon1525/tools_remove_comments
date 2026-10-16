@@ -10,6 +10,8 @@ def clean_typescript(
     return remove_comments(
         source,
         line_comments=("//",),
-        block_comments=(("/*", "*/"),),
+        block_comments=(
+            ("/*", "*/"),
+        ),
         preserve_blank_lines=preserve_blank_lines,
     )
