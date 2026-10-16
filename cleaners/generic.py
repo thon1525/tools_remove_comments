@@ -1,243 +1,224 @@
-from __future__ import annotations
+from __future__ import annotations 
 
 
-def remove_comments(
-    source: str,
-    *,
-    line_comments: tuple[str, ...] = ("//",),
-    block_comments: tuple[tuple[str, str], ...] = (
-        ("/*", "*/"),
-    ),
-    preserve_blank_lines: bool = True,
-) -> str:
-    """
-    Remove comments without leaving comment-created blank lines.
+def remove_comments (
+source :str ,
+*,
+line_comments :tuple [str ,...]=("//",),
+block_comments :tuple [tuple [str ,str ],...]=(
+("/*","*/"),
+),
+preserve_blank_lines :bool =True ,
+)->str :
 
-    Example:
 
-        const a = 1;
+    result :list [str ]=[]
 
-        /*
-         * comment
-         */
+    i =0 
+    length =len (source )
 
-        const b = 2;
+    in_string :str |None =None 
+    escaped =False 
 
-    becomes:
+    in_line_comment =False 
+    in_block_comment =False 
 
-        const a = 1;
-        const b = 2;
+    
+    removed_comment_on_line =False 
 
-    while normal blank lines remain.
-    """
+    
+    comment_only_line =False 
 
-    result: list[str] = []
+    while i <length :
 
-    i = 0
-    length = len(source)
+        char =source [i ]
 
-    in_string: str | None = None
-    escaped = False
+        
+        
+        
 
-    in_line_comment = False
-    in_block_comment = False
+        if in_line_comment :
 
-    # True when a comment was removed from the current line.
-    removed_comment_on_line = False
+            if char =="\n":
+                in_line_comment =False 
 
-    # True when a block comment occupies a complete line.
-    comment_only_line = False
+                
+                while result and result [-1 ]in (" ","\t"):
+                    result .pop ()
 
-    while i < length:
+                    
+                    
+                if not comment_only_line :
+                    result .append ("\n")
 
-        char = source[i]
+                removed_comment_on_line =False 
+                comment_only_line =False 
 
-        # ==================================================
-        # LINE COMMENT
-        # ==================================================
+            i +=1 
+            continue 
 
-        if in_line_comment:
+            
+            
+            
 
-            if char == "\n":
-                in_line_comment = False
+        if in_block_comment :
 
-                # Remove trailing whitespace before comment.
-                while result and result[-1] in (" ", "\t"):
-                    result.pop()
+        
+            closed =False 
 
-                # Keep newline only if the line contained
-                # actual source code.
-                if not comment_only_line:
-                    result.append("\n")
+            for _ ,end in block_comments :
 
-                removed_comment_on_line = False
-                comment_only_line = False
+                if source .startswith (end ,i ):
 
-            i += 1
-            continue
+                    in_block_comment =False 
 
-        # ==================================================
-        # BLOCK COMMENT
-        # ==================================================
+                    i +=len (end )
 
-        if in_block_comment:
+                    closed =True 
 
-            # Find block comment end.
-            closed = False
+                    break 
 
-            for _, end in block_comments:
+            if closed :
+                continue 
 
-                if source.startswith(end, i):
+                
+                
+                
+                
+                
+                
+                
+                
+                
+            i +=1 
+            continue 
 
-                    in_block_comment = False
+            
+            
+            
 
-                    i += len(end)
+        if in_string is not None :
 
-                    closed = True
+            result .append (char )
 
-                    break
+            if escaped :
+                escaped =False 
 
-            if closed:
-                continue
+            elif char =="\\":
+                escaped =True 
 
-            # Do NOT copy comment newlines.
-            #
-            # This is important because:
-            #
-            # /*
-            #  * comment
-            #  */
-            #
-            # should not create empty lines.
-            i += 1
-            continue
+            elif char ==in_string :
+                in_string =None 
 
-        # ==================================================
-        # STRING
-        # ==================================================
+            i +=1 
+            continue 
 
-        if in_string is not None:
+            
+            
+            
 
-            result.append(char)
+        if char in ("'",'"'):
 
-            if escaped:
-                escaped = False
+            in_string =char 
 
-            elif char == "\\":
-                escaped = True
+            result .append (char )
 
-            elif char == in_string:
-                in_string = None
+            i +=1 
+            continue 
 
-            i += 1
-            continue
+            
+            
+            
 
-        # ==================================================
-        # STRING START
-        # ==================================================
+        found_line_comment =False 
 
-        if char in ("'", '"'):
+        for marker in line_comments :
 
-            in_string = char
+            if source .startswith (marker ,i ):
 
-            result.append(char)
+                in_line_comment =True 
 
-            i += 1
-            continue
+                removed_comment_on_line =True 
 
-        # ==================================================
-        # LINE COMMENT START
-        # ==================================================
+                
+                
+                current_line ="".join (result ).split ("\n")[-1 ]
 
-        found_line_comment = False
+                comment_only_line =not current_line .strip ()
 
-        for marker in line_comments:
+                i +=len (marker )
 
-            if source.startswith(marker, i):
+                found_line_comment =True 
 
-                in_line_comment = True
+                break 
 
-                removed_comment_on_line = True
+        if found_line_comment :
+            continue 
 
-                # Check whether there is actual code before
-                # the comment on this line.
-                current_line = "".join(result).split("\n")[-1]
+            
+            
+            
 
-                comment_only_line = not current_line.strip()
+        found_block_comment =False 
 
-                i += len(marker)
+        for start ,_ in block_comments :
 
-                found_line_comment = True
+            if source .startswith (start ,i ):
 
-                break
+                in_block_comment =True 
 
-        if found_line_comment:
-            continue
+                removed_comment_on_line =True 
 
-        # ==================================================
-        # BLOCK COMMENT START
-        # ==================================================
+                
+                current_line ="".join (result ).split ("\n")[-1 ]
 
-        found_block_comment = False
+                comment_only_line =not current_line .strip ()
 
-        for start, _ in block_comments:
+                i +=len (start )
 
-            if source.startswith(start, i):
+                found_block_comment =True 
 
-                in_block_comment = True
+                break 
 
-                removed_comment_on_line = True
+        if found_block_comment :
+            continue 
 
-                # Check whether comment starts on an empty line.
-                current_line = "".join(result).split("\n")[-1]
+            
+            
+            
 
-                comment_only_line = not current_line.strip()
+        if char =="\n":
 
-                i += len(start)
+            current_line ="".join (result ).split ("\n")[-1 ]
 
-                found_block_comment = True
+            
+            
+            if removed_comment_on_line and not current_line .strip ():
+                pass 
 
-                break
+            else :
+                result .append ("\n")
 
-        if found_block_comment:
-            continue
+            removed_comment_on_line =False 
+            comment_only_line =False 
 
-        # ==================================================
-        # NEWLINE
-        # ==================================================
+            i +=1 
+            continue 
 
-        if char == "\n":
+            
+            
+            
 
-            current_line = "".join(result).split("\n")[-1]
+        result .append (char )
 
-            # If this line had a comment but no code,
-            # don't keep the newline.
-            if removed_comment_on_line and not current_line.strip():
-                pass
+        i +=1 
 
-            else:
-                result.append("\n")
+    cleaned ="".join (result )
 
-            removed_comment_on_line = False
-            comment_only_line = False
+    return _final_cleanup (cleaned )
 
-            i += 1
-            continue
 
-        # ==================================================
-        # NORMAL CHARACTER
-        # ==================================================
-
-        result.append(char)
-
-        i += 1
-
-    cleaned = "".join(result)
-
-    return _final_cleanup(cleaned)
-
-
-def _final_cleanup(source: str) -> str:
+def _final_cleanup (source :str )->str :
     """
     Final whitespace cleanup.
 
@@ -247,42 +228,42 @@ def _final_cleanup(source: str) -> str:
     - Preserves normal formatting.
     """
 
-    lines = source.splitlines()
+    lines =source .splitlines ()
 
-    output: list[str] = []
+    output :list [str ]=[]
 
-    previous_blank = False
+    previous_blank =False 
 
-    for line in lines:
+    for line in lines :
 
-        # Only remove trailing spaces.
-        line = line.rstrip(" \t")
+    
+        line =line .rstrip (" \t")
 
-        if not line.strip():
+        if not line .strip ():
 
-            # Avoid multiple empty lines.
-            if previous_blank:
-                continue
+        
+            if previous_blank :
+                continue 
 
-            output.append("")
+            output .append ("")
 
-            previous_blank = True
+            previous_blank =True 
 
-            continue
+            continue 
 
-        output.append(line)
+        output .append (line )
 
-        previous_blank = False
+        previous_blank =False 
 
-    # Remove blank lines at beginning.
-    while output and not output[0].strip():
-        output.pop(0)
+        
+    while output and not output [0 ].strip ():
+        output .pop (0 )
 
-    # Remove blank lines at end.
-    while output and not output[-1].strip():
-        output.pop()
+        
+    while output and not output [-1 ].strip ():
+        output .pop ()
 
-    if not output:
+    if not output :
         return ""
 
-    return "\n".join(output) + "\n"
+    return "\n".join (output )+"\n"
